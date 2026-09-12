@@ -1,15 +1,7 @@
 # lowen-backend
 
-To install dependencies:
+The backend for some college project with some friends.
 
-```bash
-bun install
-```
+This supports both `npm` and `bun`.
 
-To run:
-
-```bash
-bun run 
-```
-
-This project was created using `bun init` in bun v1.3.5. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+Use `bun bdev` to run it using Bun, and `npm run dev` to use npm.
