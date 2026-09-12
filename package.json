@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "@types/express": "^5.0.6",
+    "express": "^5.2.1"
+  },
+  "name": "lowen-backend",
+  "private": true,
+  "scripts": {
+    "dev": "bun app.ts",
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
