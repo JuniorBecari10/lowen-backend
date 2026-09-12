@@ -6,7 +6,7 @@
   "name": "lowen-backend",
   "private": true,
   "scripts": {
-    "dev": "bun app.ts",
+    "dev": "bun --watch app.ts",
   },
   "devDependencies": {
     "@types/bun": "latest"
