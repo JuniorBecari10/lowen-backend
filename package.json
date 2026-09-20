@@ -8,8 +8,8 @@
   "name": "lowen-backend",
   "private": true,
   "scripts": {
-    "bdev": "bun --watch app.ts",
-    "dev": "npx tsx watch app.ts"
+    "bdev": "bun --watch src/server.ts",
+    "dev": "npx tsx watch src/server.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
