@@ -1,10 +1,8 @@
-import { createApp } from "./app";
-
-const PORT = 8080;
+import { createApp } from './app.js';
+import { env } from './config/env.js';
 
 const app = createApp();
-const port = Number(process.env.PORT ?? PORT);
 
-app.listen(port, () => {
-    console.log(`Listening omn port ${port}`);
-})
+app.listen(env.PORT, () => {
+  console.log(`API rodando em http://localhost:${env.PORT} (${env.NODE_ENV})`);
+});
