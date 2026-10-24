@@ -6,140 +6,171 @@ import * as path from "node:path";
 import puppeteer from "puppeteer";
 
 export interface DanfeData {
-  accessKey: string;
-  number: string;
-  series: string;
-  issuedAt: string;
-  issuerName: string;
-  issuerTaxId: string;
-  issuerUf: string;
-  recipientName: string;
-  recipientTaxId: string;
-  recipientUf: string;
-  totalAmount: string;
-  cfops: string[];
-  protocol: string | null;
-  xmlContent: string;
+    accessKey: string;
+    number: string;
+    series: string;
+    issuedAt: string;
+    issuerName: string;
+    issuerTaxId: string;
+    issuerUf: string;
+    recipientName: string;
+    recipientTaxId: string;
+    recipientUf: string;
+    totalAmount: string;
+    cfops: string[];
+    protocol: string | null;
+    xmlContent: string;
 }
 
 /**
  * Extrai dados essenciais do XML para o template do DANFE.
  */
-function extractDanfeData(xmlString: string, nfe: Record<string, unknown>): DanfeData {
-  const nfeProc = (nfe.nfeProc ?? nfe) as Record<string, unknown>;
-  const nfeElement = (nfeProc.NFe ?? nfeProc.nfe) as Record<string, unknown> | undefined;
-  const infNFe = (nfeElement?.infNFe ?? nfeElement?.infNfe) as Record<string, unknown> | undefined;
-  const protNFe = (nfeProc.protNFe ?? nfeProc.protNfe) as Record<string, unknown> | undefined;
-  const infProt = (protNFe?.infProt) as Record<string, unknown> | undefined;
+function extractDanfeData(
+    xmlString: string,
+    nfe: Record<string, unknown>,
+): DanfeData {
+    const nfeProc = (nfe.nfeProc ?? nfe) as Record<string, unknown>;
+    const nfeElement = (nfeProc.NFe ?? nfeProc.nfe) as
+        Record<string, unknown> | undefined;
+    const infNFe = (nfeElement?.infNFe ?? nfeElement?.infNfe) as
+        Record<string, unknown> | undefined;
+    const protNFe = (nfeProc.protNFe ?? nfeProc.protNfe) as
+        Record<string, unknown> | undefined;
+    const infProt = protNFe?.infProt as Record<string, unknown> | undefined;
 
-  const ide = (infNFe?.ide) as Record<string, unknown> | undefined;
-  const emit = (infNFe?.emit) as Record<string, unknown> | undefined;
-  const dest = (infNFe?.dest) as Record<string, unknown> | undefined;
-  const totalObj = (infNFe?.total) as Record<string, unknown> | undefined;
-  const total = (totalObj?.ICMSTot ?? totalObj?.icmsTot) as Record<string, unknown> | undefined;
+    const ide = infNFe?.ide as Record<string, unknown> | undefined;
+    const emit = infNFe?.emit as Record<string, unknown> | undefined;
+    const dest = infNFe?.dest as Record<string, unknown> | undefined;
+    const totalObj = infNFe?.total as Record<string, unknown> | undefined;
+    const total = (totalObj?.ICMSTot ?? totalObj?.icmsTot) as
+        Record<string, unknown> | undefined;
 
-  const accessKey = String((infNFe as Record<string, unknown>)?.["@_Id"] ?? "").replace("NFe", "");
-  const protocol = infProt?.nProt ? String(infProt.nProt) : null;
+    const accessKey = String(
+        (infNFe as Record<string, unknown>)?.["@_Id"] ?? "",
+    ).replace("NFe", "");
+    const protocol = infProt?.nProt ? String(infProt.nProt) : null;
 
-  // Extrair CFOPs
-  const cfopsSet = new Set<string>();
-  const items = Array.isArray(infNFe?.det) ? infNFe.det : infNFe?.det ? [infNFe.det] : [];
-  for (const item of items) {
-    const prod = (item.prod ?? item.Prod) as Record<string, unknown> | undefined;
-    const cfop = String(prod?.CFOP ?? prod?.cfop ?? "");
-    if (cfop) cfopsSet.add(cfop);
-  }
+    // Extrair CFOPs
+    const cfopsSet = new Set<string>();
+    const items = Array.isArray(infNFe?.det)
+        ? infNFe.det
+        : infNFe?.det
+          ? [infNFe.det]
+          : [];
+    for (const item of items) {
+        const prod = (item.prod ?? item.Prod) as
+            Record<string, unknown> | undefined;
+        const cfop = String(prod?.CFOP ?? prod?.cfop ?? "");
+        if (cfop) cfopsSet.add(cfop);
+    }
 
-  return {
-    accessKey,
-    number: String(ide?.nNF ?? ide?.nNf ?? ""),
-    series: String(ide?.serie ?? ide?.Serie ?? ""),
-    issuedAt: String(ide?.dhEmi ?? ide?.dhEmi ?? ""),
-    issuerName: String(emit?.xNome ?? emit?.xnome ?? ""),
-    issuerTaxId: String(emit?.CNPJ ?? emit?.CPF ?? ""),
-    issuerUf: String((emit?.enderEmit as Record<string, unknown>)?.UF ?? (emit?.enderEmit as Record<string, unknown>)?.Uf ?? ""),
-    recipientName: String(dest?.xNome ?? dest?.xnome ?? ""),
-    recipientTaxId: String(dest?.CNPJ ?? dest?.CPF ?? ""),
-    recipientUf: String((dest?.enderDest as Record<string, unknown>)?.UF ?? (dest?.enderDest as Record<string, unknown>)?.Uf ?? ""),
-    totalAmount: String(total?.vNF ?? total?.VNF ?? "0"),
-    cfops: Array.from(cfopsSet),
-    protocol,
-    xmlContent: xmlString,
-  };
+    return {
+        accessKey,
+        number: String(ide?.nNF ?? ide?.nNf ?? ""),
+        series: String(ide?.serie ?? ide?.Serie ?? ""),
+        issuedAt: String(ide?.dhEmi ?? ide?.dhEmi ?? ""),
+        issuerName: String(emit?.xNome ?? emit?.xnome ?? ""),
+        issuerTaxId: String(emit?.CNPJ ?? emit?.CPF ?? ""),
+        issuerUf: String(
+            (emit?.enderEmit as Record<string, unknown>)?.UF ??
+                (emit?.enderEmit as Record<string, unknown>)?.Uf ??
+                "",
+        ),
+        recipientName: String(dest?.xNome ?? dest?.xnome ?? ""),
+        recipientTaxId: String(dest?.CNPJ ?? dest?.CPF ?? ""),
+        recipientUf: String(
+            (dest?.enderDest as Record<string, unknown>)?.UF ??
+                (dest?.enderDest as Record<string, unknown>)?.Uf ??
+                "",
+        ),
+        totalAmount: String(total?.vNF ?? total?.VNF ?? "0"),
+        cfops: Array.from(cfopsSet),
+        protocol,
+        xmlContent: xmlString,
+    };
 }
 
 /**
  * Formata data para exibição no DANFE (DD/MM/YYYY HH:mm:ss).
  */
 function formatDateForDanfe(isoString: string): string {
-  try {
-    const date = new Date(isoString);
-    return date.toLocaleString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
-  } catch {
-    return isoString;
-  }
+    try {
+        const date = new Date(isoString);
+        return date.toLocaleString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: false,
+        });
+    } catch {
+        return isoString;
+    }
 }
 
 /**
  * Formata CNPJ/CPF para exibição.
  */
 function formatTaxId(taxId: string): string {
-  const digits = taxId.replace(/\D/g, "");
-  if (digits.length === 14) {
-    return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
-  }
-  if (digits.length === 11) {
-    return digits.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
-  }
-  return taxId;
+    const digits = taxId.replace(/\D/g, "");
+    if (digits.length === 14) {
+        return digits.replace(
+            /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
+            "$1.$2.$3/$4-$5",
+        );
+    }
+    if (digits.length === 11) {
+        return digits.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+    }
+    return taxId;
 }
 
 /**
  * Formata valor monetário para exibição.
  */
 function formatCurrency(value: string): string {
-  const num = parseFloat(value);
-  return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const num = parseFloat(value);
+    return num.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    });
 }
 
 /**
  * Escapa HTML para prevenir XSS no template.
  */
 function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&")
-    .replace(/</g, "<")
-    .replace(/>/g, ">")
-    .replace(/"/g, "\"")
-    .replace(/'/g, "&#039;");
+    return text
+        .replace(/&/g, "&")
+        .replace(/</g, "<")
+        .replace(/>/g, ">")
+        .replace(/"/g, '"')
+        .replace(/'/g, "&#039;");
 }
 
 /**
  * Gera o HTML do DANFE simplificado.
  */
 function generateDanfeHtml(data: DanfeData): string {
-  const formattedDate = formatDateForDanfe(data.issuedAt);
-  const formattedIssuerTaxId = formatTaxId(data.issuerTaxId);
-  const formattedRecipientTaxId = formatTaxId(data.recipientTaxId);
-  const formattedTotal = formatCurrency(data.totalAmount);
+    const formattedDate = formatDateForDanfe(data.issuedAt);
+    const formattedIssuerTaxId = formatTaxId(data.issuerTaxId);
+    const formattedRecipientTaxId = formatTaxId(data.recipientTaxId);
+    const formattedTotal = formatCurrency(data.totalAmount);
 
-  const protocolHtml = data.protocol
-    ? `<div class="protocol"><strong>Protocolo de Autorização:</strong> ${escapeHtml(data.protocol)}</div>`
-    : '<div class="protocol warning">NF-e sem protocolo de autorização (resumo).</div>';
+    const protocolHtml = data.protocol
+        ? `<div class="protocol"><strong>Protocolo de Autorização:</strong> ${escapeHtml(data.protocol)}</div>`
+        : '<div class="protocol warning">NF-e sem protocolo de autorização (resumo).</div>';
 
-  const cfopsHtml = data.cfops.length > 0
-    ? data.cfops.map((c) => `<span class="cfop">${escapeHtml(c)}</span>`).join("")
-    : '<span class="cfop">-</span>';
+    const cfopsHtml =
+        data.cfops.length > 0
+            ? data.cfops
+                  .map((c) => `<span class="cfop">${escapeHtml(c)}</span>`)
+                  .join("")
+            : '<span class="cfop">-</span>';
 
-  return `<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -225,88 +256,106 @@ function generateDanfeHtml(data: DanfeData): string {
  * Nunca persiste o PDF permanentemente - retorna como Buffer.
  */
 export async function generateDanfePdf(
-  company: Company,
-  nfeId: string,
-  disposition: "inline" | "attachment" = "inline",
+    company: Company,
+    nfeId: string,
+    disposition: "inline" | "attachment" = "inline",
 ): Promise<{ pdfBuffer: Buffer; filename: string }> {
-  // Buscar NF-e
-  const { data: nfe, error } = await supabaseAdminClient
-    .from("nfe_documents")
-    .select("*")
-    .eq("id", nfeId)
-    .eq("company_id", company.id)
-    .maybeSingle();
+    // Buscar NF-e
+    const { data: nfe, error } = await supabaseAdminClient
+        .from("nfe_documents")
+        .select("*")
+        .eq("id", nfeId)
+        .eq("company_id", company.id)
+        .maybeSingle();
 
-  if (error) {
-    throw Errors.upstreamUnavailable("Falha ao buscar NF-e.");
-  }
-  if (!nfe) {
-    throw Errors.notFound("NF-e não encontrada.");
-  }
+    if (error) {
+        throw Errors.upstreamUnavailable("Falha ao buscar NF-e.");
+    }
+    if (!nfe) {
+        throw Errors.notFound("NF-e não encontrada.");
+    }
 
-  // Verificar se tem XML completo e protocolo válido
-  if (!nfe.xml_path) {
-    throw Errors.unprocessable("XML original não disponível para geração do DANFE.");
-  }
-  if (!nfe.authorization_protocol) {
-    throw Errors.unprocessable("NF-e não possui protocolo de autorização. Apenas NF-es autorizadas podem gerar DANFE completo.");
-  }
+    // Verificar se tem XML completo e protocolo válido
+    if (!nfe.xml_path) {
+        throw Errors.unprocessable(
+            "XML original não disponível para geração do DANFE.",
+        );
+    }
+    if (!nfe.authorization_protocol) {
+        throw Errors.unprocessable(
+            "NF-e não possui protocolo de autorização. Apenas NF-es autorizadas podem gerar DANFE completo.",
+        );
+    }
 
-  // Baixar XML do Storage
-  const { data: xmlData, error: downloadError } = await supabaseAdminClient.storage
-    .from("fiscal-documents")
-    .download(nfe.xml_path);
+    // Baixar XML do Storage
+    const { data: xmlData, error: downloadError } =
+        await supabaseAdminClient.storage
+            .from("fiscal-documents")
+            .download(nfe.xml_path);
 
-  if (downloadError || !xmlData) {
-    throw Errors.notFound("Arquivo XML não encontrado no Storage.");
-  }
+    if (downloadError || !xmlData) {
+        throw Errors.notFound("Arquivo XML não encontrado no Storage.");
+    }
 
-  const xmlArrayBuffer = await xmlData.arrayBuffer();
-  const xmlString = Buffer.from(xmlArrayBuffer).toString("utf8");
+    const xmlArrayBuffer = await xmlData.arrayBuffer();
+    const xmlString = Buffer.from(xmlArrayBuffer).toString("utf8");
 
-  // Parsear XML para extrair dados
-  const { XMLParser } = await import("fast-xml-parser");
-  const parser = new XMLParser({
-    ignoreAttributes: false,
-    attributeNamePrefix: "@_",
-    parseAttributeValue: true,
-    trimValues: true,
-    processEntities: false,
-  });
-
-  let parsedNfe: Record<string, unknown>;
-  try {
-    parsedNfe = parser.parse(xmlString);
-  } catch {
-    throw Errors.unprocessable("Falha ao parsear XML para geração do DANFE.");
-  }
-
-  // Extrair dados para o template
-  const danfeData = extractDanfeData(xmlString, parsedNfe);
-
-  // Gerar HTML
-  const html = generateDanfeHtml(danfeData);
-
-  // Gerar PDF com Puppeteer
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
-  });
-
-  try {
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "domcontentloaded" });
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: { top: "15mm", right: "15mm", bottom: "15mm", left: "15mm" },
+    // Parsear XML para extrair dados
+    const { XMLParser } = await import("fast-xml-parser");
+    const parser = new XMLParser({
+        ignoreAttributes: false,
+        attributeNamePrefix: "@_",
+        parseAttributeValue: true,
+        trimValues: true,
+        processEntities: false,
     });
-    await browser.close();
 
-    const filename = `DANFE-${danfeData.accessKey}.pdf`;
-    return { pdfBuffer: Buffer.from(pdfBuffer), filename };
-  } catch (e) {
-    await browser.close();
-    throw Errors.upstreamUnavailable(`Falha ao gerar PDF: ${(e as Error).message}`);
-  }
+    let parsedNfe: Record<string, unknown>;
+    try {
+        parsedNfe = parser.parse(xmlString);
+    } catch {
+        throw Errors.unprocessable(
+            "Falha ao parsear XML para geração do DANFE.",
+        );
+    }
+
+    // Extrair dados para o template
+    const danfeData = extractDanfeData(xmlString, parsedNfe);
+
+    // Gerar HTML
+    const html = generateDanfeHtml(danfeData);
+
+    // Gerar PDF com Puppeteer
+    const browser = await puppeteer.launch({
+        headless: true,
+        args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+        ],
+    });
+
+    try {
+        const page = await browser.newPage();
+        await page.setContent(html, { waitUntil: "domcontentloaded" });
+        const pdfBuffer = await page.pdf({
+            format: "A4",
+            printBackground: true,
+            margin: {
+                top: "15mm",
+                right: "15mm",
+                bottom: "15mm",
+                left: "15mm",
+            },
+        });
+        await browser.close();
+
+        const filename = `DANFE-${danfeData.accessKey}.pdf`;
+        return { pdfBuffer: Buffer.from(pdfBuffer), filename };
+    } catch (e) {
+        await browser.close();
+        throw Errors.upstreamUnavailable(
+            `Falha ao gerar PDF: ${(e as Error).message}`,
+        );
+    }
 }
