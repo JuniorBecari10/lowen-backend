@@ -1,21 +1,23 @@
-import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
-import { env } from '../config/env.js';
+import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { env } from "../config/env.js";
 
-const ALGO = 'aes-256-gcm';
+const ALGO = "aes-256-gcm";
 
 function getMasterKey(): Buffer {
-  const key = Buffer.from(env.CERT_MASTER_KEY_BASE64, 'base64');
-  if (key.length !== 32) {
-    throw new Error('CERT_MASTER_KEY_BASE64 deve decodificar para 32 bytes (AES-256).');
-  }
-  return key;
+    const key = Buffer.from(env.CERT_MASTER_KEY_BASE64, "base64");
+    if (key.length !== 32) {
+        throw new Error(
+            "CERT_MASTER_KEY_BASE64 deve decodificar para 32 bytes (AES-256).",
+        );
+    }
+    return key;
 }
 
 export interface EncryptedEnvelope {
-  ciphertext: Buffer;
-  iv: Buffer;
-  tag: Buffer;
-  keyVersion: number;
+    ciphertext: Buffer;
+    iv: Buffer;
+    tag: Buffer;
+    keyVersion: number;
 }
 
 /**
@@ -25,17 +27,23 @@ export interface EncryptedEnvelope {
  * silenciosa de envelopes entre registros.
  */
 export function encrypt(plaintext: Buffer, aad: string): EncryptedEnvelope {
-  const iv = randomBytes(12);
-  const cipher = createCipheriv(ALGO, getMasterKey(), iv);
-  cipher.setAAD(Buffer.from(aad, 'utf8'));
-  const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-  const tag = cipher.getAuthTag();
-  return { ciphertext, iv, tag, keyVersion: env.CERT_MASTER_KEY_VERSION };
+    const iv = randomBytes(12);
+    const cipher = createCipheriv(ALGO, getMasterKey(), iv);
+    cipher.setAAD(Buffer.from(aad, "utf8"));
+    const ciphertext = Buffer.concat([
+        cipher.update(plaintext),
+        cipher.final(),
+    ]);
+    const tag = cipher.getAuthTag();
+    return { ciphertext, iv, tag, keyVersion: env.CERT_MASTER_KEY_VERSION };
 }
 
 export function decrypt(envelope: EncryptedEnvelope, aad: string): Buffer {
-  const decipher = createDecipheriv(ALGO, getMasterKey(), envelope.iv);
-  decipher.setAAD(Buffer.from(aad, 'utf8'));
-  decipher.setAuthTag(envelope.tag);
-  return Buffer.concat([decipher.update(envelope.ciphertext), decipher.final()]);
+    const decipher = createDecipheriv(ALGO, getMasterKey(), envelope.iv);
+    decipher.setAAD(Buffer.from(aad, "utf8"));
+    decipher.setAuthTag(envelope.tag);
+    return Buffer.concat([
+        decipher.update(envelope.ciphertext),
+        decipher.final(),
+    ]);
 }
