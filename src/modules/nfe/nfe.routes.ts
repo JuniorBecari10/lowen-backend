@@ -13,6 +13,15 @@ import {
   getNfeEvents,
 } from "./nfe.service.js";
 
+interface NfeDocument {
+  id: string;
+  xml_path: string | null;
+  access_key: string;
+  environment: "homologacao" | "producao";
+  // other properties exist but we only need these for the routes
+  [key: string]: unknown;
+}
+
 export const nfeRouter = Router();
 
 // Multer para upload de XML (apenas memory storage, limite em bytes)
@@ -123,16 +132,17 @@ nfeRouter.get("/nfe/:id/xml", async (req, res, next) => {
     const company = await requireCompanyByOwner(req.userId!);
     const nfe = await getNfeDocumentById(company, req.params.id);
 
-    if (!nfe || !nfe.xml_path) {
+    if (!nfe || !(nfe as NfeDocument).xml_path) {
       return next(Errors.notFound("Documento não encontrado."));
     }
 
+    const nfeDoc = nfe as NfeDocument;
     const disposition = req.query.disposition === "attachment" ? "attachment" : "inline";
-    const xmlBytes = await getXmlFromStorage(nfe.xml_path);
+    const xmlBytes = await getXmlFromStorage(nfeDoc.xml_path!);
 
     res.set({
       "Content-Type": "application/xml",
-      "Content-Disposition": `${disposition}; filename="${nfe.access_key}.xml"`,
+      "Content-Disposition": `${disposition}; filename="${nfeDoc.access_key}.xml"`,
       "Content-Length": xmlBytes.length.toString(),
     });
     res.send(xmlBytes);
@@ -151,7 +161,8 @@ nfeRouter.get("/nfe/:id/events", async (req, res, next) => {
       return next(Errors.notFound("NF-e não encontrada."));
     }
 
-    const events = await getNfeEvents(company, nfe.access_key, nfe.environment);
+    const nfeDoc = nfe as NfeDocument;
+    const events = await getNfeEvents(company, nfeDoc.access_key, nfeDoc.environment);
 
     res.json({ events });
   } catch (err) {

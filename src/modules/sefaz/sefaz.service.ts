@@ -8,21 +8,21 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 export interface SyncState {
-  companyId: string;
+  company_id: string;
   environment: "homologacao" | "producao";
-  lastNsu: string | null;
-  maxNsu: string | null;
-  lastAttemptAt: string | null;
-  lastSuccessAt: string | null;
-  lastCStat: string | null;
-  lastErrorCode: string | null;
-  nextAllowedAt: string | null;
-  lockUntil: string | null;
-  lockToken: string | null;
-  attemptId: string | null;
-  pendingResponsePath: string | null;
-  pendingUltNsu: string | null;
-  recoveryRequired: boolean;
+  last_nsu: string | null;
+  max_nsu: string | null;
+  last_attempt_at: string | null;
+  last_success_at: string | null;
+  last_cstat: string | null;
+  last_error_code: string | null;
+  next_allowed_at: string | null;
+  lock_until: string | null;
+  lock_token: string | null;
+  attempt_id: string | null;
+  pending_response_path: string | null;
+  pending_ult_nsu: string | null;
+  recovery_required: boolean;
 }
 
 /**

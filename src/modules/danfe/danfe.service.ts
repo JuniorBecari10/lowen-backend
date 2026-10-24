@@ -26,41 +26,42 @@ export interface DanfeData {
  * Extrai dados essenciais do XML para o template do DANFE.
  */
 function extractDanfeData(xmlString: string, nfe: Record<string, unknown>): DanfeData {
-  const nfeProc = nfe.nfeProc ?? nfe;
-  const nfeElement = nfeProc.NFe ?? nfeProc.nfe;
-  const infNFe = nfeElement?.infNFe ?? nfeElement?.infNfe;
-  const protNFe = nfeProc.protNFe ?? nfeProc.protNfe;
-  const infProt = protNFe?.infProt ?? {};
+  const nfeProc = (nfe.nfeProc ?? nfe) as Record<string, unknown>;
+  const nfeElement = (nfeProc.NFe ?? nfeProc.nfe) as Record<string, unknown> | undefined;
+  const infNFe = (nfeElement?.infNFe ?? nfeElement?.infNfe) as Record<string, unknown> | undefined;
+  const protNFe = (nfeProc.protNFe ?? nfeProc.protNfe) as Record<string, unknown> | undefined;
+  const infProt = (protNFe?.infProt) as Record<string, unknown> | undefined;
 
-  const ide = infNFe?.ide ?? {};
-  const emit = infNFe?.emit ?? {};
-  const dest = infNFe?.dest ?? {};
-  const total = infNFe?.total?.ICMSTot ?? infNFe?.total?.icmsTot ?? {};
+  const ide = (infNFe?.ide) as Record<string, unknown> | undefined;
+  const emit = (infNFe?.emit) as Record<string, unknown> | undefined;
+  const dest = (infNFe?.dest) as Record<string, unknown> | undefined;
+  const totalObj = (infNFe?.total) as Record<string, unknown> | undefined;
+  const total = (totalObj?.ICMSTot ?? totalObj?.icmsTot) as Record<string, unknown> | undefined;
 
-  const accessKey = String(infNFe?.["@_Id"] ?? "").replace("NFe", "");
-  const protocol = infProt.nProt ? String(infProt.nProt) : null;
+  const accessKey = String((infNFe as Record<string, unknown>)?.["@_Id"] ?? "").replace("NFe", "");
+  const protocol = infProt?.nProt ? String(infProt.nProt) : null;
 
   // Extrair CFOPs
   const cfopsSet = new Set<string>();
   const items = Array.isArray(infNFe?.det) ? infNFe.det : infNFe?.det ? [infNFe.det] : [];
   for (const item of items) {
-    const prod = item.prod ?? item.Prod ?? {};
-    const cfop = String(prod.CFOP ?? prod.cfop ?? "");
+    const prod = (item.prod ?? item.Prod) as Record<string, unknown> | undefined;
+    const cfop = String(prod?.CFOP ?? prod?.cfop ?? "");
     if (cfop) cfopsSet.add(cfop);
   }
 
   return {
     accessKey,
-    number: String(ide.nNF ?? ide.nNf ?? ""),
-    series: String(ide.serie ?? ide.Serie ?? ""),
-    issuedAt: String(ide.dhEmi ?? ide.dhEmi ?? ""),
-    issuerName: String(emit.xNome ?? emit.xnome ?? ""),
-    issuerTaxId: String(emit.CNPJ ?? emit.CPF ?? ""),
-    issuerUf: String(emit.enderEmit?.UF ?? emit.enderEmit?.Uf ?? ""),
-    recipientName: String(dest.xNome ?? dest.xnome ?? ""),
-    recipientTaxId: String(dest.CNPJ ?? dest.CPF ?? ""),
-    recipientUf: String(dest.enderDest?.UF ?? dest.enderDest?.Uf ?? ""),
-    totalAmount: String(total.vNF ?? total.VNF ?? "0"),
+    number: String(ide?.nNF ?? ide?.nNf ?? ""),
+    series: String(ide?.serie ?? ide?.Serie ?? ""),
+    issuedAt: String(ide?.dhEmi ?? ide?.dhEmi ?? ""),
+    issuerName: String(emit?.xNome ?? emit?.xnome ?? ""),
+    issuerTaxId: String(emit?.CNPJ ?? emit?.CPF ?? ""),
+    issuerUf: String((emit?.enderEmit as Record<string, unknown>)?.UF ?? (emit?.enderEmit as Record<string, unknown>)?.Uf ?? ""),
+    recipientName: String(dest?.xNome ?? dest?.xnome ?? ""),
+    recipientTaxId: String(dest?.CNPJ ?? dest?.CPF ?? ""),
+    recipientUf: String((dest?.enderDest as Record<string, unknown>)?.UF ?? (dest?.enderDest as Record<string, unknown>)?.Uf ?? ""),
+    totalAmount: String(total?.vNF ?? total?.VNF ?? "0"),
     cfops: Array.from(cfopsSet),
     protocol,
     xmlContent: xmlString,
@@ -117,7 +118,7 @@ function escapeHtml(text: string): string {
     .replace(/&/g, "&")
     .replace(/</g, "<")
     .replace(/>/g, ">")
-    .replace(/"/g, """)
+    .replace(/"/g, "\"")
     .replace(/'/g, "&#039;");
 }
 
@@ -270,7 +271,6 @@ export async function generateDanfePdf(
     attributeNamePrefix: "@_",
     parseAttributeValue: true,
     trimValues: true,
-    disableEntityReference: true,
     processEntities: false,
   });
 
@@ -295,7 +295,7 @@ export async function generateDanfePdf(
 
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
     const pdfBuffer = await page.pdf({
       format: "A4",
       printBackground: true,

@@ -1,5 +1,4 @@
 import { supabaseAdminClient } from "../../infra/supabase.js";
-import { env } from "../../config/env.js";
 import { Errors } from "../../shared/errors.js";
 import { Company } from "../company/company.service.js";
 import { encrypt, decrypt, EncryptedEnvelope } from "../../infra/crypto.js";
@@ -96,12 +95,12 @@ export async function parseAndValidatePkcs12(
   const privateKey = keyBag.key;
 
   // Validar par chave-certificado
-  const certPublicKey = cert.publicKey;
+  const certPublicKey = cert.publicKey as { n: unknown; e: unknown };
   const keyPublicKey = forge.pki.rsa.setPublicKey(
     privateKey.n,
     privateKey.e,
   );
-  const certModulus = certPublicKey.n.toString(16);
+  const certModulus = (certPublicKey.n as unknown as { toString: (radix: number) => string }).toString(16);
   const keyModulus = keyPublicKey.n.toString(16);
   if (certModulus !== keyModulus) {
     throw Errors.unprocessable("Chave privada não corresponde ao certificado.");
@@ -287,7 +286,7 @@ export async function getDecryptedCertificate(
   const { data: cert, error } = await supabaseAdminClient
     .from("certificates")
     .select(
-      `storage_path, password_ciphertext, password_iv, password_tag, key_version,
+      `id, storage_path, password_ciphertext, password_iv, password_tag, key_version,
        validation_result`,
     )
     .eq("company_id", company.id)

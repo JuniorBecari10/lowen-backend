@@ -61,11 +61,9 @@ export async function parseNfeXml(xmlBytes: Buffer): Promise<ParsedNfe> {
     trimValues: true,
     allowBooleanAttributes: true,
     parseTagValue: true,
-    ignorePiNodes: true,
     ignoreDeclaration: true,
     removeNSPrefix: true,
     // Segurança: não processar DTD nem entidades externas
-    disableEntityReference: true,
     processEntities: false,
   });
 
@@ -77,20 +75,21 @@ export async function parseNfeXml(xmlBytes: Buffer): Promise<ParsedNfe> {
   }
 
   // Encontrar o elemento NFe (pode estar dentro de nfeProc)
-  const nfeProc = parsed.nfeProc ?? parsed;
-  const nfe = nfeProc.NFe ?? nfeProc.nfe;
-  const infNFe = nfe?.infNFe ?? nfe?.infNfe;
+  const nfeProc = (parsed.nfeProc ?? parsed) as Record<string, unknown>;
+  const nfe = (nfeProc.NFe ?? nfeProc.nfe) as Record<string, unknown> | undefined;
+  const infNFe = (nfe?.infNFe ?? nfe?.infNfe) as Record<string, unknown> | undefined;
 
   if (!infNFe) {
     throw Errors.unprocessable("XML não contém elemento infNFe válido.");
   }
 
-  const ide = infNFe.ide ?? {};
-  const emit = infNFe.emit ?? {};
-  const dest = infNFe.dest ?? {};
-  const total = infNFe.total?.ICMSTot ?? infNFe.total?.icmsTot ?? {};
-  const protNFe = nfeProc.protNFe ?? nfeProc.protNfe;
-  const infProt = protNFe?.infProt ?? {};
+  const ide = (infNFe.ide ?? {}) as Record<string, unknown>;
+  const emit = (infNFe.emit ?? {}) as Record<string, unknown>;
+  const dest = (infNFe.dest ?? {}) as Record<string, unknown>;
+  const totalObj = (infNFe.total ?? {}) as Record<string, unknown>;
+  const total = (totalObj.ICMSTot ?? totalObj.icmsTot ?? {}) as Record<string, unknown>;
+  const protNFe = (nfeProc.protNFe ?? nfeProc.protNfe) as Record<string, unknown> | undefined;
+  const infProt = (protNFe?.infProt ?? {}) as Record<string, unknown>;
 
   // Validar modelo 55
   const model = String(ide.mod ?? ide.Mod ?? "");
@@ -105,7 +104,7 @@ export async function parseNfeXml(xmlBytes: Buffer): Promise<ParsedNfe> {
     throw Errors.unprocessable(`NF-e não autorizada (cStat: ${cStat}).`);
   }
 
-  const accessKey = String(infNFe["@_Id"] ?? "").replace("NFe", "");
+  const accessKey = String((infNFe as Record<string, unknown>)["@_Id"] ?? "").replace("NFe", "");
   if (!accessKey || accessKey.length !== 44) {
     throw Errors.unprocessable("Chave de acesso inválida.");
   }
@@ -123,7 +122,7 @@ export async function parseNfeXml(xmlBytes: Buffer): Promise<ParsedNfe> {
   const cfopsSet = new Set<string>();
   const items = Array.isArray(infNFe.det) ? infNFe.det : infNFe.det ? [infNFe.det] : [];
   for (const item of items) {
-    const prod = item.prod ?? item.Prod ?? {};
+    const prod = ((item as Record<string, unknown>).prod ?? (item as Record<string, unknown>).Prod ?? {}) as Record<string, unknown>;
     const cfop = String(prod.CFOP ?? prod.cfop ?? "");
     if (cfop) cfopsSet.add(cfop);
   }
@@ -164,8 +163,8 @@ export async function parseNfeXml(xmlBytes: Buffer): Promise<ParsedNfe> {
     recipientTaxId: String(dest.CNPJ ?? dest.CPF ?? ""),
     issuerName: String(emit.xNome ?? emit.xnome ?? ""),
     recipientName: String(dest.xNome ?? dest.xnome ?? ""),
-    issuerUf: String(emit.enderEmit?.UF ?? emit.enderEmit?.Uf ?? ""),
-    recipientUf: String(dest.enderDest?.UF ?? dest.enderDest?.Uf ?? ""),
+    issuerUf: String(((emit.enderEmit as Record<string, unknown>)?.UF ?? (emit.enderEmit as Record<string, unknown>)?.Uf ?? "")),
+    recipientUf: String(((dest.enderDest as Record<string, unknown>)?.UF ?? (dest.enderDest as Record<string, unknown>)?.Uf ?? "")),
     tpNF,
     idDest,
     movement,
